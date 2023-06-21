@@ -114,10 +114,7 @@ declare module '../apiTypes' {
        * })
        * ```
        */
-      reducer: Reducer<
-        CombinedState<Definitions, TagTypes, ReducerPath>,
-        UnknownAction
-      >
+      reducer: Reducer<CombinedState<Definitions, TagTypes, ReducerPath>>
       /**
        * This is a standard redux middleware and is responsible for things like polling, garbage collection and a handful of other things. Make sure it's included in your store.
        *

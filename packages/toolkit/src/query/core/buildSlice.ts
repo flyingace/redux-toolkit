@@ -1,6 +1,6 @@
-import type { PayloadAction, UnknownAction } from '@reduxjs/toolkit'
+import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit'
+import { combineSlices } from '@reduxjs/toolkit'
 import {
-  combineReducers,
   createAction,
   createSlice,
   isAnyOf,
@@ -21,6 +21,7 @@ import type {
   QueryCacheKey,
   SubscriptionState,
   ConfigState,
+  CombinedState,
 } from './apiState'
 import { QueryStatus } from './apiState'
 import type { MutationThunk, QueryThunk, RejectedAction } from './buildThunks'
@@ -113,6 +114,7 @@ export function buildSlice({
   const resetApiState = createAction(`${reducerPath}/resetApiState`)
   const querySlice = createSlice({
     name: `${reducerPath}/queries`,
+    reducerPath: 'queries',
     initialState: initialState as QueryState<any>,
     reducers: {
       removeQueryResult: {
@@ -257,6 +259,7 @@ export function buildSlice({
   })
   const mutationSlice = createSlice({
     name: `${reducerPath}/mutations`,
+    reducerPath: 'mutations',
     initialState: initialState as MutationState<any>,
     reducers: {
       removeMutationResult: {
@@ -323,6 +326,7 @@ export function buildSlice({
 
   const invalidationSlice = createSlice({
     name: `${reducerPath}/invalidation`,
+    reducerPath: 'provided',
     initialState: initialState as InvalidationState<string>,
     reducers: {},
     extraReducers(builder) {
@@ -399,6 +403,7 @@ export function buildSlice({
   // Dummy slice to generate actions
   const subscriptionSlice = createSlice({
     name: `${reducerPath}/subscriptions`,
+    reducerPath: 'subscriptions',
     initialState: initialState as SubscriptionState,
     reducers: {
       updateSubscriptionOptions(
@@ -430,6 +435,7 @@ export function buildSlice({
 
   const internalSubscriptionsSlice = createSlice({
     name: `${reducerPath}/internalSubscriptions`,
+    reducerPath: 'subscriptions',
     initialState: initialState as SubscriptionState,
     reducers: {
       subscriptionsUpdated: {
@@ -443,6 +449,7 @@ export function buildSlice({
 
   const configSlice = createSlice({
     name: `${reducerPath}/config`,
+    reducerPath: 'config',
     initialState: {
       online: isOnline(),
       focused: isDocumentVisible(),
@@ -477,16 +484,18 @@ export function buildSlice({
     },
   })
 
-  const combinedReducer = combineReducers({
-    queries: querySlice.reducer,
-    mutations: mutationSlice.reducer,
-    provided: invalidationSlice.reducer,
-    subscriptions: internalSubscriptionsSlice.reducer,
-    config: configSlice.reducer,
-  })
+  const combinedReducer = combineSlices(
+    querySlice,
+    mutationSlice,
+    invalidationSlice,
+    internalSubscriptionsSlice,
+    configSlice
+  )
 
-  const reducer: typeof combinedReducer = (state, action) =>
-    combinedReducer(resetApiState.match(action) ? undefined : state, action)
+  const reducer: Reducer<CombinedState<any, string, string>> = (
+    state,
+    action
+  ) => combinedReducer(resetApiState.match(action) ? undefined : state, action)
 
   const actions = {
     ...configSlice.actions,
